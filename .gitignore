@@ -1,0 +1,12 @@
+# Exclude this file to prevent secrats in github
+emr_env.json
+*.pem
+
+
+# Explude intelliJ project setting files
+.idea/
+
+
+# Exclude the build output folder
+target/
+data/
