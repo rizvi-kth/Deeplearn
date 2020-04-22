@@ -10,3 +10,5 @@ emr_env.json
 # Exclude the build output folder
 target/
 data/
+
+.DS_Store
