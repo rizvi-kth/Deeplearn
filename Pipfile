@@ -14,6 +14,11 @@ pandas = "*"
 jupyterlab = "*"
 matplotlib = "*"
 sklearn = "*"
+numpy = "*"
+keras = "*"
+tensorflow = "*"
+seqeval = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
