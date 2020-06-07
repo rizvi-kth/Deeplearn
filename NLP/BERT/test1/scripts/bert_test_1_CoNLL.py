@@ -7,6 +7,8 @@ import itertools
 from IPython.core.interactiveshell import InteractiveShell
 InteractiveShell.ast_node_interactivity = "all"
 os.getcwd()
+os.chdir("NLP/BERT/test1")
+os.getcwd()
 
 # To make available the local modules and data files with relative paths
 import sys
@@ -18,11 +20,23 @@ sys.path.append("./scripts")
 # ==============
 PAD_LABEL = "PAD"
 import SentenceLoaderCoNLL as sg
-sentences, labels, unique_tag_values = sg.get_sentences_labels_tags("./data/CONLL_ENG_NER_2003/ner_only/train_cola.csv")
+sentences_train, labels_train, unique_tag_values_train = sg.get_sentences_labels_tags("./data/CONLL_ENG_NER_2003/ner_only/train_cola.csv")
+sentences_test, labels_test, unique_tag_values_test = sg.get_sentences_labels_tags("./data/CONLL_ENG_NER_2003/ner_only/test_cola.csv")
+print(f"Training samples : {len(sentences_train)}  \nTesting samples : {len(sentences_test)} ")
+TRAIN_SIZE = len(sentences_train)
+
+# Concatenate train and test to a single list
+sentences_train.extend(sentences_test)
+sentences = sentences_train
+labels_train.extend(labels_train)
+labels = labels_train
+
+assert set(unique_tag_values_train) == set(unique_tag_values_test), "The Train dataset and Test dataset dont have the same labels."
+unique_tag_values = list(set(unique_tag_values_train)) # or unique_tag_values_test can be taken
 
 unique_tag_values.append(PAD_LABEL)
 tag2idx = {t: i for i, t in enumerate(unique_tag_values)}
-tag2idx
+print(f"The TAG dictionary : {tag2idx}")
 
 
 # BERT Tokenization and Label mapping
@@ -33,6 +47,7 @@ from transformers import BertTokenizer, BertConfig
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 print(torch.__version__)
+
 
 MAX_LEN = 75
 bs = 32
@@ -62,7 +77,6 @@ def tokenize_and_preserve_labels(sentence, text_labels):
 tokenized_texts_and_labels = [tokenize_and_preserve_labels(sent, labs) for sent, labs in zip(sentences, labels)]
 print(tokenized_texts_and_labels[0][0][5:9])
 print(tokenized_texts_and_labels[0][1][5:9])
-
 tokenized_sentences = [token_label_pair[0] for token_label_pair in tokenized_texts_and_labels]
 labels_4_sentence = [token_label_pair[1] for token_label_pair in tokenized_texts_and_labels]
 
@@ -74,8 +88,8 @@ attention_masks = []
 labels_nes = []
 labels_ne_ids = []
 # For every sentence...
-# Todo : Temporarily taking 5 sentences. Take all sentences.
-for indx, (sentence_arr, ne_list) in enumerate(zip(tokenized_sentences[:3040], labels_4_sentence[:3040])):
+# Todo : Temporarily taking 100 sentences. Take all sentences.
+for indx, (sentence_arr, ne_list) in enumerate(zip(tokenized_sentences[:100], labels_4_sentence[:100])):
     print( "=== ",indx, " =========================================================================" )
     print("Input Sentance     : ", sentence_arr)
 
@@ -136,17 +150,26 @@ print("   Output shape : ", labels_ne_ids_tn.shape)
 
 # Split train and validation set
 # ==============================
-from torch.utils.data import TensorDataset, random_split
-# Combine the training inputs into a TensorDataset.
-dataset = TensorDataset(input_ids_tn, attention_masks_tn, labels_ne_ids_tn)
-# Create a 95-10 train-validation split.
-# Calculate the number of samples to include in each set.
-train_size = int(0.95 * len(dataset))
-val_size = len(dataset) - train_size
-# Divide the dataset by randomly selecting samples.
-train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-print('{:>5,} training samples'.format(train_size))
-print('{:>5,} validation samples'.format(val_size))
+# from torch.utils.data import TensorDataset, random_split
+# # Combine the training inputs into a TensorDataset.
+# dataset = TensorDataset(input_ids_tn, attention_masks_tn, labels_ne_ids_tn)
+# # Create a 95-10 train-validation split.
+# # Calculate the number of samples to include in each set.
+# train_size = int(0.95 * len(dataset))
+# val_size = len(dataset) - train_size
+# # Divide the dataset by randomly selecting samples.
+# train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+# print('{:>5,} training samples'.format(train_size))
+# print('{:>5,} validation samples'.format(val_size))
+
+# Todo: Remove when considering the whole dataset
+TRAIN_SIZE = 75
+
+train_dataset = TensorDataset(input_ids_tn[0:TRAIN_SIZE-1, :], attention_masks_tn[0:TRAIN_SIZE-1, :], labels_ne_ids_tn[0:TRAIN_SIZE-1, :])
+val_dataset   = TensorDataset(input_ids_tn[TRAIN_SIZE-1: , :], attention_masks_tn[TRAIN_SIZE-1: , :], labels_ne_ids_tn[TRAIN_SIZE-1: , :])
+
+print('{:>5,} training samples'.format(len(train_dataset)))
+print('{:>5,} validation samples'.format(len(val_dataset)))
 
 
 # Encapsulate in data loader
@@ -177,7 +200,7 @@ validation_dataloader = DataLoader(
 from transformers import BertForTokenClassification, AdamW, BertConfig
 # Load BertForSequenceClassification, the pretrained BERT model with a single
 # linear classification layer on top.
-model = BertForTokenClassification.from_pretrained("bert-base-cased", num_labels=len(tag2idx), output_attentions=False, output_hidden_states=False)
+model = BertForTokenClassification.from_pretrained("bert-base-cased", num_labels=len(unique_tag_values), output_attentions=False, output_hidden_states=False)
 # Todo: Tell pytorch to run this model on the GPU.
 # model.cuda()
 model
@@ -217,9 +240,10 @@ print("Total number of training steps", total_steps)
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
 
-# Test single training step
+# Test single Training step
 # =========================
 model.train()
+total_train_loss = 0
 
 train_input = next(iter(train_dataloader))[0]
 train_atten = next(iter(train_dataloader))[1]
@@ -232,7 +256,7 @@ print("Train input shape : ", train_input.shape)
 print("Train attention shape : ", train_atten.shape)
 print("Train label shape : ", train_output.shape)
 
-total_train_loss = 0
+
 model.zero_grad()
 loss, logits = model(train_input, token_type_ids=None, attention_mask=train_atten, labels=train_output)
 total_train_loss += loss.item()
@@ -245,6 +269,54 @@ torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 # The optimizer dictates the "update rule"--how the parameters are
 # modified based on their gradients, the learning rate, etc.
 optimizer.step()
+# Update the learning rate.
+scheduler.step()
+
+
+# Test single Validation step
+# ===========================
+model.eval()
+eval_loss, eval_accuracy = 0, 0
+nb_eval_steps, nb_eval_examples = 0, 0
+predictions, true_labels = [], []
+
+batch = next(iter(validation_dataloader))
+b_input_ids, b_input_mask, b_labels = batch
+with torch.no_grad():
+    # Forward pass, calculate logit predictions.
+    # This will return the logits rather than the loss because we have not provided labels.
+    outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask)  # labels=b_labels
+
+# Move logits and labels to CPU
+logits = outputs[0].numpy()
+label_ids = b_labels.numpy()
+
+# eval_accuracy += flat_accuracy(logits, label_ids)
+# pred_flat = np.argmax(logits, axis=2).flatten()
+# labels_flat = labels.flatten()
+# return np.sum(pred_flat == labels_flat) / len(labels_flat)
+
+predictions = [list(p) for p in np.argmax(logits, axis=2)]
+true_labels = label_ids
+
+pred_tags = [unique_tag_values[p_i] for p, l in zip(predictions, true_labels)
+                                    for p_i, l_i in zip(p, l) if unique_tag_values[l_i] != "PAD"]
+valid_tags = [unique_tag_values[l_i] for l in true_labels
+                                  for l_i in l if unique_tag_values[l_i] != "PAD"]
+
+from seqeval.metrics import f1_score
+print("Validation F1-Score (without PAD) : {}".format(f1_score(pred_tags, valid_tags)))
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Test the model with single sentence
@@ -287,4 +359,11 @@ for token, label_idx in zip(input_tokens, predicted_label_ids[0]):
 
 for token, label in zip(new_tokens, new_labels):
     print("{}\t{}".format(label, token))
+
+
+
+# Saving the model
+# ================
+PATH = "./models/bert_CoNLL_model.pth"
+torch.save(model.state_dict(), PATH)
 
