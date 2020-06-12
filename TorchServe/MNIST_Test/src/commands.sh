@@ -44,3 +44,6 @@ fi
 
 # torchserve --stop
 
+# docker run --rm -it -p 8080:8080 -p 8081:8081 --name ner -v $(pwd)/model_store:/home/model-server/model-store torchserve:latest
+
+

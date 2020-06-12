@@ -32,7 +32,10 @@ class NerClassifierHandler(object):
         properties = ctx.system_properties
         self.batch_size = properties["batch_size"]
         # assert MAX_LEN == self.batch_size, "Output-batch-size and the Input-batch-size should be same."
-        logger.info(f'{">>>" * 20 }\n Batch-size : {self.batch_size}')
+        logger.info(f'{">>>" * 20}\n Batch-size     : {self.batch_size}')
+        logger.info(f'{">>>" * 20}\n Server name    : {properties["server_name"]}')
+        logger.info(f'{">>>" * 20}\n Server version : {properties["server_version"]}')
+        logger.info(f'{">>>" * 20}\n GPU-id         : {properties["gpu_id"]}')
 
         # Prepare the DEVICE from context
         logger.info(f'{">>>" * 20 }\n Server Device : {"cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu"}')
