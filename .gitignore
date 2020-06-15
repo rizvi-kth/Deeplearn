@@ -1,10 +1,13 @@
 # Exclude this file to prevent secrats in github
 emr_env.json
 *.pem
-
+*.mar
+*.pth
 
 # Explude intelliJ project setting files
 .idea/
+.ipynb_checkpoints/
+
 
 
 # Exclude the build output folder
