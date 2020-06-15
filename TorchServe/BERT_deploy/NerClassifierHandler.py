@@ -1,4 +1,3 @@
-# from abc import ABC
 import json
 import logging
 import os
@@ -31,7 +30,6 @@ class NerClassifierHandler(object):
         # Get properties from context
         properties = ctx.system_properties
         self.batch_size = properties["batch_size"]
-        # assert MAX_LEN == self.batch_size, "Output-batch-size and the Input-batch-size should be same."
         logger.info(f'{">>>" * 20}\n Batch-size     : {self.batch_size}')
         logger.info(f'{">>>" * 20}\n Server name    : {properties["server_name"]}')
         logger.info(f'{">>>" * 20}\n Server version : {properties["server_version"]}')
@@ -131,6 +129,7 @@ def handle(data, context):
 
         return data
     except Exception as e:
+        logger.error(f'{">>>" * 20}\n Error thrown from NerClassifierHandler')
         raise e
 
 
