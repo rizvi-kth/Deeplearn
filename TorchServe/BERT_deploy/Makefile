@@ -49,3 +49,8 @@ infr:
 # docker cp ./config.properties <cont-id>:/home/model-server/       (keep NUM_WORKERS=1 for local docker image)
 
 
+# (Docker from ECS)
+# curl http://54.246.181.47:8081/models/
+
+
+

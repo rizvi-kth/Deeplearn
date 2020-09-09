@@ -9,9 +9,10 @@ emr_env.json
 .ipynb_checkpoints/
 
 
-
 # Exclude the build output folder
 target/
 data/
+models/
+logs/
 
 .DS_Store

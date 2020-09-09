@@ -31,7 +31,7 @@ echo "=============================="
 
 # Local model
 # curl -X POST "http://localhost:8081/models?url=bert-ner.mar&initial_workers=1&synchronous=true&model_name=ner"
-response=$(curl --write-out %{http_code} --silent --output /dev/null --retry 5 -X POST "http://localhost:8081/models?url=bert-ner.mar&initial_workers=1&synchronous=true&model_name=ner")
+# response=$(curl --write-out %{http_code} --silent --output /dev/null --retry 5 -X POST "http://localhost:8081/models?url=bert-ner.mar&initial_workers=1&synchronous=true&model_name=ner")
 
 if [ ! "$response" == 200 ]
 then
